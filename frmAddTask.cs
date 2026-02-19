@@ -1,19 +1,13 @@
-﻿using businessLayerOfTasks;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 using System.Windows.Forms;
 
 namespace Tasks
 {
     public partial class frmAddTask : Form
     {
-        public string TaskTitle => txtdescription.Text;
+        public delegate void TaskSavedHandler(string taskTitle);
+        public event TaskSavedHandler TaskSaved;
+
         public frmAddTask()
         {
             InitializeComponent();
@@ -21,13 +15,16 @@ namespace Tasks
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(txtdescription.Text))
+            var taskDescription = txtdescription.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(taskDescription))
             {
                 MessageBox.Show("Task is empty, you should input a task");
                 return;
             }
-            this.DialogResult = DialogResult.OK;
 
+            TaskSaved?.Invoke(taskDescription);
+            DialogResult = DialogResult.OK;
         }
     }
 }

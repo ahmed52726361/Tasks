@@ -14,10 +14,18 @@ namespace Tasks
     public partial class Form1 : Form
     {
         private ITaskServices taskServices;
+        // subscribe to the TaskAdded event to refresh the DataGridView when a new task is added
         public Form1(ITaskServices service)
         {
             InitializeComponent();
             taskServices = service;
+            // SUBSCRIBE to the event using a Lambda expression
+            taskServices.OnTaskAdded += () =>
+            {
+                // This code runs AUTOMATICALLY when AddTask is called
+                RefreshDataGridView();
+                RefreshPrograssBar();
+            };
         }
         private void RefreshPrograssBar()
         {
@@ -44,8 +52,6 @@ namespace Tasks
             if (frmAdd.DialogResult==DialogResult.OK)
             {
                 taskServices.AddTask(new clsTask(frmAdd.TaskTitle));
-                RefreshDataGridView();
-                RefreshPrograssBar();
             }
 
         }

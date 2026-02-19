@@ -1,75 +1,67 @@
 ﻿using businessLayerOfTasks;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Tasks
 {
     public partial class Form1 : Form
     {
-        private ITaskServices taskServices;
+        private readonly ITaskServices _taskServices;
+
         public Form1(ITaskServices service)
         {
             InitializeComponent();
-            taskServices = service;
+            _taskServices = service;
         }
-        private void RefreshPrograssBar()
-        {
-                float Progress = taskServices.GetTotalProgress()*100;
-                lblProgress.Text = Progress.ToString()+"%";
-                prgBar.Minimum = 0;
-                prgBar.Maximum = 100;
-                prgBar.Value = (int)(Progress);
 
-        }
-        private void RefreshDataGridView()
+        private void RefreshDashboard()
         {
-            if (taskServices.GetAllTasks() != null && taskServices.GetAllTasks().Count!=0)
-            {
-                dataGridView1.DataSource = null;
-                dataGridView1.DataSource= taskServices.GetAllTasks();
+            var tasks = _taskServices.GetAllTasks();
 
-            }
-        }
-        private void btnAddTask_Click(object sender, EventArgs e)
-        {
-            frmAddTask frmAdd=new frmAddTask();
-            frmAdd.ShowDialog();
-            if (frmAdd.DialogResult==DialogResult.OK)
+            dataGridView1.DataSource = null;
+            if (tasks != null && tasks.Count != 0)
             {
-                taskServices.AddTask(new clsTask(frmAdd.TaskTitle));
-                RefreshDataGridView();
-                RefreshPrograssBar();
+                dataGridView1.DataSource = tasks;
             }
 
+            var progressPercent = _taskServices.GetTotalProgress() * 100;
+            var progressValue = Math.Max(0, Math.Min(100, (int)progressPercent));
+            lblProgress.Text = $"{progressPercent:0.##}%";
+            prgBar.Minimum = 0;
+            prgBar.Maximum = 100;
+            prgBar.Value = progressValue;
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            RefreshDataGridView();
-            RefreshPrograssBar();
+            RefreshDashboard();
+        }
+
+        private void btnAddTask_Click(object sender, EventArgs e)
+        {
+            using (var addTaskForm = new frmAddTask())
+            {
+                addTaskForm.TaskSaved += taskTitle =>
+                {
+                    _taskServices.AddTask(new clsTask(taskTitle));
+                    RefreshDashboard();
+                };
+
+                addTaskForm.ShowDialog();
+            }
         }
 
         private void btnCompleteTask_Click(object sender, EventArgs e)
         {
-            foreach (DataGridViewRow row in dataGridView1.SelectedRows)
-            {
-                if (row.DataBoundItem is clsTask task)
-                {
-                    taskServices.GetTaskDone(task);
+            dataGridView1.SelectedRows
+                .Cast<DataGridViewRow>()
+                .Select(row => row.DataBoundItem as clsTask)
+                .Where(task => task != null)
+                .ToList()
+                .ForEach(task => _taskServices.GetTaskDone(task));
 
-                }
-            }
-            RefreshDataGridView();
-            RefreshPrograssBar();
-
-
+            RefreshDashboard();
         }
     }
 }
